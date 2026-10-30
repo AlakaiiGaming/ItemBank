@@ -1,0 +1,475 @@
+# Item Bank configuration
+#
+# Run /ibank reload after making changes.
+# Prices use the currency from your economy plugin, such as CMI or a Vault-compatible plugin.
+
+config-version: 4   # Used for config updates. Do not change.
+
+
+# -------------------------------------------------
+#  Stock and prices
+# -------------------------------------------------
+
+# limited   = server banks use their available stock and can run out.
+# unlimited = server banks do not run out of stock.
+stock: limited
+
+# The gap between buy and sell prices, as a percentage of the current price.
+# A value of 12 sets the buy price 6% above and the sell price 6% below it.
+# This spread helps prevent players from profiting by selling items and buying them back.
+spread-percent: 12
+
+# curve = each item is priced separately as stock increases during the sale.
+#         Selling 64 items at once pays the same as selling them one at a time.
+# flat  = every item in the sale uses the price from before the sale.
+#
+# With flat pricing, large sales are paid at the initial price before it drops.
+# This can let players profit by selling items and buying them back.
+bulk-pricing: curve
+
+# Minimum and maximum prices, expressed as multiples of each material's base price.
+# Base prices are set in the materials section below. With a base price of 2,
+# a minimum of 0.25 and a maximum of 2 give a range of 0.50 to 4.00 before inflation.
+price-limits:
+  min: 0.25
+  max: 2.0
+
+
+# -------------------------------------------------
+#  Stock settling
+# -------------------------------------------------
+# Server banks gradually move stock toward normal-stock by removing excess
+# items or restocking shortages, depending on the settings below. Removing
+# surplus stock allows prices to recover after heavy selling.
+
+stock-settling:
+  # Percentage of excess stock removed each day. Excess stock is the amount
+  # above normal-stock. At 50%, a surplus of 3000 coal is reduced by 1500
+  # over 24 hours. Set to 0 to disable automatic surplus removal.
+  sell-surplus-percent: 50
+
+  # Percentage of the shortage below normal-stock that is replenished each day.
+  # Set to 0 to disable automatic restocking.
+  restock-percent: 0
+
+
+# -------------------------------------------------
+#  Inflation
+# -------------------------------------------------
+# Each day, the plugin checks recently active players' balances and calculates
+# the average balance per player. Prices rise when that average increases
+# and fall when it decreases. If the average doubles, prices gradually double,
+# subject to the daily adjustment limit and the inflation index limits.
+#
+# Money paid out or collected by banks is excluded from this calculation.
+# Selling farmed items to a bank therefore does not raise the inflation rate.
+# Money from other sources, such as /eco give, jobs, and voting rewards, does count.
+#
+# Use /ibank stats to view these figures. They are also logged to the console each day.
+# /ibank inflation reset uses current balances as the new reference point
+# without changing current prices.
+# /ibank inflation set <index> sets the inflation multiplier directly.
+
+inflation:
+  enabled: true
+
+  # Include players who have been active within this many days.
+  # Balances of players outside this period are excluded.
+  active-days: 30
+
+  # Minimum and maximum inflation multipliers. With the values below,
+  # inflation can scale prices from 0.5 to 10 times their starting level.
+  index-limits:
+    min: 0.5
+    max: 10
+
+  # Maximum daily inflation adjustment, as a percentage.
+  # Changes in the average balance per active player affect prices gradually.
+  # At 3% per day, doubling prices takes roughly three to four weeks.
+  max-change-percent: 3
+
+  # Number of days used to smooth the inflation calculation.
+  # This reduces the effect of unusually large balance changes on a single day.
+  compare-days: 7
+
+  # Time of the daily check, using the server's clock in 24-hour format ("HH:mm").
+  # Daily trade limits reset at this time.
+  update-time: "00:00"
+
+
+# -------------------------------------------------
+#  Tax
+# -------------------------------------------------
+# Apply tax to bank trades.
+#   Selling: tax is deducted from the amount the player receives.
+#   Buying:  tax is added to the amount the player pays.
+#
+# Tax settings can also be changed in-game with /ibank tax
+# (requires itembank.tax) or by other plugins, such as the election plugin.
+# Changes are saved to this file.
+
+tax:
+  enabled: false
+  sell-percent: 5
+  buy-percent: 5
+
+  # Maximum tax rate that can be set in-game or through another plugin.
+  max-percent: 50
+
+  # Who receives the tax revenue. Enter a player name, or use none
+  # to remove the money from the economy instead.
+  # /ibank tax receiver saves the player's UUID here so that payments
+  # continue to work if the player changes their name.
+  receiver: none
+
+  # true  = apply tax to both player banks and server banks.
+  # false = apply tax only to server banks.
+  player-banks: true
+
+
+# -------------------------------------------------
+#  Player banks
+# -------------------------------------------------
+# Players with itembank.create.own can turn a chest they own into a bank
+# with /ibank create <material>.
+#
+# Player banks sell items from their chests and use the owner's balance to pay
+# sellers. The difference between buy and sell prices is the owner's trading margin.
+# Owners can sneak and right-click the chest to add or remove stock.
+
+player-banks:
+  # Maximum number of banks a player can own. Set to -1 for no limit.
+  # Players with itembank.create.unlimited bypass this limit.
+  max-per-player: 3
+
+  # Cost to create a player bank. Set to 0 to make creation free.
+  create-cost: 0
+
+  # When enabled, players must be allowed to open a chest before turning it
+  # into a bank. This checks protection from plugins such as GriefPrevention, Lands, and LWC.
+  check-protection: true
+
+  # Materials that players can create banks for. Use [] to allow all materials
+  # configured below. Example: [coal, iron_ingot, gold_ingot]
+  materials: []
+
+
+# -------------------------------------------------
+#  Daily limits
+# -------------------------------------------------
+# Maximum quantity of each material a player can sell or buy per day.
+# Set to 0 for no limit. These limits apply to all banks.
+# Players with itembank.bypass.limit bypass these limits.
+
+limits:
+  sell: 0
+  buy: 0
+
+
+# -------------------------------------------------
+#  Sell-off protection (server banks only)
+# -------------------------------------------------
+# Limits large sales over a set period. Each material has its own limits,
+# so reaching the coal limit does not prevent a player from selling iron.
+
+sell-off-protection:
+  enabled: true
+
+  # Period used to track sales, in minutes. Only sales within this window
+  # count toward the limits below. Players may need to wait for earlier sales
+  # to leave the window before they can sell more.
+  window-minutes: 60
+
+  # Limits for each player. Set a value to 0 to disable that limit.
+  per-player:
+    # Maximum quantity of a material a player can sell within the window,
+    # as a percentage of its normal-stock. With the default stock values,
+    # 25 allows 250 coal, 125 iron ingots, or 25 diamonds.
+    max-items-percent: 25
+
+    # Maximum quantity per material within the window, using the same item
+    # count for every material instead of a percentage.
+    max-items: 0
+
+    # Maximum payout a player can receive from one material within the window.
+    # A material's max-payout setting overrides this value (see below).
+    max-payout-per-material: 0
+
+  # Combined sales limit for all players. This limit applies only when the bank
+  # holds more than the material's normal-stock. Other trade limits still apply.
+  everyone:
+    # If combined sales exceed this percentage of a material's normal-stock
+    # within the window, the bank temporarily stops buying that material.
+    # With the default stock values, 200 means 2000 coal or 1000 iron ingots
+    # within the period set by window-minutes.
+    max-percent: 200
+
+    # How long buying remains suspended, in minutes. Admins can reopen it
+    # early with /ibank reopen <material>.
+    close-minutes: 60
+
+    # Announce to the server when buying is suspended for a material.
+    announce: true
+
+
+# -------------------------------------------------
+#  Menu and display
+# -------------------------------------------------
+
+# Quantities shown on the bank menu's buy and sell buttons.
+# "all" sells all available items or buys as many as the player can afford.
+menu-amounts: [1, 16, 64, all]
+
+display:
+  # How bank information is displayed:
+  #   sign     = a sign on the front of the chest.
+  #   hologram = floating text above the chest.
+  #   none     = no text display.
+  type: sign
+
+  # Display the bank's item above the chest.
+  floating-item:
+    enabled: true
+    height: 1.5           # Height in blocks, measured from the bottom of the chest.
+    size: 0.6             # 1 = normal item size.
+    seconds-per-spin: 4   # 0 = no rotation.
+
+  # Sign text (four lines). Available placeholders: %material%, %sell%, %buy%, %stock%.
+  lines:
+    - "&8[&6Item Bank&8]"
+    - "&0%material%"
+    - "&2Sell %sell%"
+    - "&4Buy %buy%"
+
+  # Hologram text. Add as many lines as needed. Uses the same placeholders as the sign.
+  hologram-lines:
+    - "&6&lItem Bank"
+    - "&f%material%"
+    - "&aSell &f%sell%  &cBuy &f%buy%"
+    - "&7Stock: %stock%"
+
+
+# -------------------------------------------------
+#  Materials
+# -------------------------------------------------
+# Materials available for trading. Add or remove entries as needed, using
+# Minecraft item IDs such as iron_ingot, oak_log, or wheat.
+#
+#   base          Price at the normal stock level.
+#   normal-stock  Stock level used as the reference for pricing.
+#   step          Stock change needed to halve or double the price. Each step
+#                 above normal-stock halves it; each step below doubles it,
+#                 subject to price-limits.
+#   start-stock   Starting stock on a new server.
+#   max-stock     Stock level at which the bank stops buying. Set to 0 for no limit.
+#   max-payout    Optional payout limit for this material under sell-off-protection.
+#                 Overrides max-payout-per-material.
+#   block         Optional block form that can also be traded. Each block counts
+#                 as nine items.
+#
+# Iron example: with 500 in stock, the price is 2.00 per item. With 1000, it is 1.00.
+# With no stock, it is 4.00, the maximum allowed by a price limit of 2 times the base.
+# These figures are before inflation.
+
+materials:
+  coal:
+    base: 0.5
+    normal-stock: 1000
+    step: 1000
+    start-stock: 100
+    max-stock: 4000
+    block: coal_block
+  copper_ingot:
+    base: 0.25
+    normal-stock: 1000
+    step: 1000
+    start-stock: 100
+    max-stock: 4000
+    block: copper_block
+  redstone:
+    base: 0.4
+    normal-stock: 1000
+    step: 1000
+    start-stock: 100
+    max-stock: 4000
+    block: redstone_block
+  lapis_lazuli:
+    base: 0.75
+    normal-stock: 800
+    step: 800
+    start-stock: 100
+    max-stock: 3200
+    block: lapis_block
+  quartz:
+    base: 0.4
+    normal-stock: 800
+    step: 800
+    start-stock: 100
+    max-stock: 3200
+  amethyst_shard:
+    base: 0.5
+    normal-stock: 500
+    step: 500
+    start-stock: 50
+    max-stock: 2000
+  iron_ingot:
+    base: 2
+    normal-stock: 500
+    step: 500
+    start-stock: 50
+    max-stock: 2000
+    block: iron_block
+  gold_ingot:
+    base: 4
+    normal-stock: 300
+    step: 300
+    start-stock: 30
+    max-stock: 1200
+    block: gold_block
+  emerald:
+    base: 8
+    normal-stock: 200
+    step: 200
+    start-stock: 20
+    max-stock: 800
+    block: emerald_block
+  diamond:
+    base: 30
+    normal-stock: 100
+    step: 100
+    start-stock: 10
+    max-stock: 400
+    block: diamond_block
+  netherite_ingot:
+    base: 400
+    normal-stock: 16
+    step: 16
+    start-stock: 0
+    max-stock: 64
+    block: netherite_block
+
+
+# -------------------------------------------------
+#  Messages
+# -------------------------------------------------
+# Use & color and formatting codes, such as &a for green, &c for red,
+# &7 for gray, and &l for bold. Set a message to "" to disable it.
+# Placeholders such as %material% are replaced with their corresponding values.
+
+messages:
+  prefix: "&8[&6Item Bank&8] "
+
+  # Buying and selling
+  sold: "&aSold %amount% %material% for %money%."
+  bought: "&aBought %amount% %material% for %money%."
+  sold-taxed: "&aSold %amount% %material% for %money% &7(%tax% tax)&a."
+  bought-taxed: "&aBought %amount% %material% for %money% &7(%tax% tax)&a."
+  own-bank: "&cThat's your bank. Sneak and right-click to open the chest."
+  not-enough-items: "&cYou don't have any %material% to sell."
+  not-enough-money: "&cYou can't afford that."
+  out-of-stock: "&cThe bank is out of %material%."
+  bank-full: "&cThe bank is full of %material% right now."
+  inventory-full: "&cYou don't have room for that."
+  owner-broke: "&cThe owner of this bank can't pay right now."
+  chest-full: "&cThis bank's chest is full."
+  limit-reached: "&cYou've hit today's limit for %material%."
+  disabled: "&c%material% trading is turned off."
+
+  # Sell-off protection
+  selling-closed: "&cThe bank stopped buying %material% after a big sell-off. Try again in %time%."
+  sold-a-lot: "&cYou've sold a lot of %material% recently. Try again in %time%, or sell something else."
+  closed-announce: "&6The bank stopped buying %material% for %time% after a big sell-off."
+  reopened: "&a%material% selling reopened."
+
+  # Creating and removing banks
+  created: "&aCreated a %material% bank."
+  created-player: "&aCreated a %material% bank for %owner%."
+  removed: "&aRemoved the bank."
+  removed-all: "&aRemoved %amount% banks owned by %owner%."
+  not-your-bank: "&cThat isn't your bank."
+  not-your-chest: "&cYou can't use that chest."
+  no-bank-id: "&cNo bank with id %id%. See /ibank list."
+  too-many-banks: "&cYou already have %max% banks."
+  material-not-allowed: "&cPlayers can't make %material% banks."
+  create-cost: "&cA bank costs %money% to make."
+  create-paid: "&7Paid %money% for the bank."
+  protected: "&cThis is a bank. Use /ibank remove first."
+
+  # /ibank list
+  list-header: "&6&lBanks &7(%owner%, %amount%)"
+  list-line: "&7%id% &f%material% &7%owner% at %location%, stock &f%stock%"
+  list-empty: "&7None."
+  list-footer: "&7/ibank info <id> for records, /ibank remove <id> to remove."
+
+  # /ibank info
+  # The "Today" and "All time" figures are shown from the bank's perspective:
+  # "bought" means items purchased from players; "sold" means items sold to players.
+  info:
+    - "&6&l%material% bank &7(%id%)"
+    - "&7Owner: &f%owner% &7Made: &f%created%"
+    - "&7Stock: &f%stock%"
+    - "&7Sell &a%sell% &7Buy &c%buy%"
+    - "&7Today: bought &f%today-in% &7for &f%today-paid%&7, sold &f%today-out% &7for &f%today-got%&7, tax &f%today-tax%"
+    - "&7All time: bought &f%total-in% &7for &f%total-paid%&7, sold &f%total-out% &7for &f%total-got%&7, tax &f%total-tax%"
+  info-recent: "&7Last trades:"
+
+  # /ibank tax and /ibank stats
+  tax-info: "&7Tax is &f%state%&7. Sell &f%sell%%&7, buy &f%buy%%&7, goes to &f%receiver%&7. Collected so far: &f%total%"
+  tax-set: "&a%what% set to %value%."
+  stats:
+    - "&6&lItem Bank economy"
+    - "&7Money held by active players: &f%supply% &7(%players% players, %per-player% each)"
+    - "&7Change per player: &f%supply-change% &7over %days% days, not counting banks"
+    - "&7Money banks have made: &f%issued%"
+    - "&7Price index: &f%index% &7(1 = starting prices)"
+    - "&7Tax collected: &f%tax-total%"
+    - "&7Banks: &f%banks% &7(%player-banks% player banks)"
+
+  # Admin commands
+  owner-set: "&aBank owner set to %owner%."
+  stock-set: "&a%material% stock set to %amount%."
+  frozen: "&a%material% price frozen."
+  unfrozen: "&a%material% price unfrozen."
+  enabled: "&a%material% trading turned on."
+  disabled-now: "&a%material% trading turned off."
+  updated: "&aDaily update done. Prices changed by %change%."
+  inflation-reset: "&aToday's money supply is now the normal for today's prices."
+  index-set: "&aPrice index set to %index%."
+  reloaded: "&aReloaded."
+
+  # Errors
+  not-a-chest: "&cLook at a chest."
+  not-a-bank: "&cThat chest isn't a bank."
+  already-bank: "&cThat chest is already a bank."
+  unknown-material: "&c%material% isn't set up in the config."
+  no-permission: "&cYou don't have permission."
+  player-not-found: "&cPlayer not found."
+  no-economy: "&cNo economy is set up."
+  usage: "&e/ibank prices &7| &e/ibank create <material> &7| &e/ibank list &7| &e/ibank info &7| &e/ibank remove [id] &7| &e/ibank tax"
+
+  # /ibank prices
+  prices-header: "&6&lItem Bank prices &7(sell / buy / stock / today)"
+  prices-line: "&f%material%&7: &a%sell% &7/ &c%buy% &7/ &f%stock% &7/ %change%"
+
+  # Bank menu
+  menu-title: "%material% Bank"
+  menu-sell: "&aSell %amount%"
+  menu-sell-all: "&aSell all"
+  menu-buy: "&cBuy %amount%"
+  menu-buy-all: "&cBuy max"
+  menu-get: "&7You get &f%money%"
+  menu-cost: "&7Costs &f%money%"
+  menu-count: "&7%amount% items"
+  menu-none: "&8Not available"
+  menu-out-of-stock: "&cOut of stock"
+  menu-cant-afford: "&cYou can't afford any"
+  menu-server: "Server"
+  menu-tax: "%sell%% selling, %buy%% buying"
+  menu-no-tax: "none"
+  menu-info:
+    - "&7Sell price: &a%sell%"
+    - "&7Buy price: &c%buy%"
+    - "&7Stock: &f%stock%"
+    - "&7Today: &f%change%"
+    - "&7Owner: &f%owner%"
+    - "&7Tax: &f%tax%"

@@ -1,0 +1,39 @@
+name: ItemBank
+version: '${project.version}'
+main: com.alakaiigaming.itembank.ItemBank
+api-version: '1.21'
+author: AlakaiiGaming
+description: Bank chests that buy and sell materials at prices that move with supply and demand.
+softdepend: [Vault, CMI]
+
+commands:
+  ibank:
+    description: Item Bank commands
+    usage: /ibank help
+    aliases: [itembank]
+
+permissions:
+  itembank.use:
+    description: Buy and sell at banks
+    default: true
+  itembank.create:
+    description: Create and remove server banks
+    default: op
+  itembank.create.own:
+    description: Create your own bank on your own chest
+    default: false
+  itembank.create.unlimited:
+    description: Skip player-banks.max-per-player
+    default: op
+  itembank.create.player:
+    description: Create banks owned by another player
+    default: op
+  itembank.tax:
+    description: Change the tax rates and who gets the tax
+    default: op
+  itembank.admin:
+    description: Remove or look at any bank, set stock, freeze prices, reload, force the daily update
+    default: op
+  itembank.bypass.limit:
+    description: Skip daily buy and sell limits
+    default: false
